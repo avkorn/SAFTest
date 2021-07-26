@@ -1,11 +1,20 @@
 package com.example.saftest;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.snackbar.Snackbar;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.provider.DocumentsContract;
 import android.view.View;
 
 import androidx.navigation.NavController;
@@ -17,11 +26,17 @@ import com.example.saftest.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
-    private AppBarConfiguration appBarConfiguration;
+    //    private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
+    private TextView textView;
+
+//    ActivityResultLauncher<Intent> safLauncher;
+    protected final SafActivityResult<Intent, ActivityResult> dirLauncher = SafActivityResult.registerActivityForResult(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,17 +47,7 @@ public class MainActivity extends AppCompatActivity {
 
         setSupportActionBar(binding.toolbar);
 
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        appBarConfiguration = new AppBarConfiguration.Builder(navController.getGraph()).build();
-        NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-
-        binding.fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
+        textView = findViewById(R.id.textView);
     }
 
     @Override
@@ -67,10 +72,34 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, appBarConfiguration)
-                || super.onSupportNavigateUp();
+    public void fabClick(View view) {
+        openDirectory(null);
+        Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
+    }
+
+    public void openDirectory(Uri uriToLoad) {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);//, SafActivityResult.class);
+        // Optionally, specify a URI for the directory that should be opened in
+        // the system file picker when it loads.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, uriToLoad);
+        }
+        dirLauncher.launch(intent,
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent data = result.getData();
+                    doSomeOperations(data);
+            }
+        });
+    }
+    void doSomeOperations(Intent data){
+        if (data != null) {
+            Uri uri = data.getData();
+            Toast.makeText(this, uri.getPath(), Toast.LENGTH_SHORT).show();
+            String text = textView.getText().toString();
+            text += "\n"+uri.toString();
+            textView.setText(text);
+        }
     }
 }

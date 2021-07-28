@@ -10,7 +10,9 @@ import com.google.android.material.snackbar.Snackbar;
 
 import androidx.activity.result.ActivityResult;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.documentfile.provider.DocumentFile;
 
+import android.preference.PreferenceManager;
 import android.provider.DocumentsContract;
 import android.view.View;
 
@@ -21,12 +23,15 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+
 public class MainActivity extends AppCompatActivity {
 
     //    private AppBarConfiguration appBarConfiguration;
     private TextView textView;
+    private Uri uri;
 
-//    ActivityResultLauncher<Intent> safLauncher;
+    //    ActivityResultLauncher<Intent> safLauncher;
     protected final SafActivityResult<Intent, ActivityResult> dirLauncher = SafActivityResult.registerActivityForResult(this);
 
     @Override
@@ -57,6 +62,10 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            String text = textView.getText().toString();
+            text += getFiles(uri);
+            textView.setText(text);
+
             return true;
         }
 
@@ -79,18 +88,44 @@ public class MainActivity extends AppCompatActivity {
         dirLauncher.launch(intent,
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent data = result.getData();
-                    doSomeOperations(data);
-            }
-        });
+                        Intent data = result.getData();
+                        doSomeOperations(data);
+                    }
+                });
     }
-    void doSomeOperations(Intent data){
+
+    void doSomeOperations(Intent data) {
         if (data != null) {
-            Uri uri = data.getData();
+            uri = data.getData();
+            final int takeFlags = data.getFlags()
+                    & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            // Check for the freshest data.
+            getContentResolver().takePersistableUriPermission(uri, takeFlags);
+
+//            val sharedPref = PreferenceManager.getDefaultSharedPreferences(activity?.baseContext)
+//            with (sharedPref.edit()) {
+//                putString("savePathURI", uri.toString())
+//                commit()
+
             Toast.makeText(this, uri.getPath(), Toast.LENGTH_SHORT).show();
             String text = textView.getText().toString();
-            text += "\n"+uri.toString();
+            text += getFiles(uri);
             textView.setText(text);
         }
     }
+
+    String getFiles(Uri uri) {
+        StringBuilder sfiles = new StringBuilder();
+        DocumentFile parentFolder = DocumentFile.fromTreeUri(this, uri);
+        if (parentFolder != null) {
+            DocumentFile[] dfiles = parentFolder.listFiles();
+            sfiles = new StringBuilder("\n" + parentFolder.getName() + " content:");
+            for (DocumentFile dfile : dfiles) {
+                sfiles.append("\n").append(dfile.getName());
+            }
+        }
+        return sfiles.toString();
+    }
+
 }

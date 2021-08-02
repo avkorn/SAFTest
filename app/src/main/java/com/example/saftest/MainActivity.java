@@ -12,7 +12,6 @@ import androidx.activity.result.ActivityResult;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
-import android.preference.PreferenceManager;
 import android.provider.DocumentsContract;
 import android.view.View;
 
@@ -23,15 +22,11 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-
 public class MainActivity extends AppCompatActivity {
 
-    //    private AppBarConfiguration appBarConfiguration;
     private TextView textView;
-    private Uri uri;
+//    private Uri uri;
 
-    //    ActivityResultLauncher<Intent> safLauncher;
     protected final SafActivityResult<Intent, ActivityResult> dirLauncher = SafActivityResult.registerActivityForResult(this);
 
     @Override
@@ -62,10 +57,12 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            String text = textView.getText().toString();
-            text += getFiles(uri);
-            textView.setText(text);
 
+            Uri uri = MFiles.loadMFolderUri(this.getBaseContext());
+            if (uri != null) {
+                String text = getFiles(MFiles.getmFolderUri());
+                textView.setText(text);
+            }
             return true;
         }
 
@@ -96,21 +93,17 @@ public class MainActivity extends AppCompatActivity {
 
     void doSomeOperations(Intent data) {
         if (data != null) {
-            uri = data.getData();
+            Uri uri = data.getData();
             final int takeFlags = data.getFlags()
                     & (Intent.FLAG_GRANT_READ_URI_PERMISSION
                     | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             // Check for the freshest data.
             getContentResolver().takePersistableUriPermission(uri, takeFlags);
 
-//            val sharedPref = PreferenceManager.getDefaultSharedPreferences(activity?.baseContext)
-//            with (sharedPref.edit()) {
-//                putString("savePathURI", uri.toString())
-//                commit()
+            MFiles.saveMFolderUri(this, uri);
 
             Toast.makeText(this, uri.getPath(), Toast.LENGTH_SHORT).show();
-            String text = textView.getText().toString();
-            text += getFiles(uri);
+            String text = getFiles(uri);
             textView.setText(text);
         }
     }

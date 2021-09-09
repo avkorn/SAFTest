@@ -1,6 +1,8 @@
 package com.example.saftest;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -13,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.documentfile.provider.DocumentFile;
 
 import android.provider.DocumentsContract;
+import android.util.Log;
 import android.view.View;
 
 import com.example.saftest.databinding.ActivityMainBinding;
@@ -22,8 +25,14 @@ import android.view.MenuItem;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "testTag";
     private TextView textView;
 //    private Uri uri;
 
@@ -57,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-
             Uri uri = MFiles.loadMFolderUri(this.getBaseContext());
             if (uri != null) {
                 String text = getFiles(MFiles.getmFolderUri());
@@ -91,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    @SuppressLint("WrongConstant")
     void doSomeOperations(Intent data) {
         if (data != null) {
             Uri uri = data.getData();
@@ -108,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    String getFiles(Uri uri) {
+    private String getFiles(Uri uri) {
         StringBuilder sfiles = new StringBuilder();
         DocumentFile parentFolder = DocumentFile.fromTreeUri(this, uri);
         if (parentFolder != null) {
@@ -116,9 +125,38 @@ public class MainActivity extends AppCompatActivity {
             sfiles = new StringBuilder("\n" + parentFolder.getName() + " content:");
             for (DocumentFile dfile : dfiles) {
                 sfiles.append("\n").append(dfile.getName());
+                try {
+                    copyFile(dfile, parentFolder);
+                } catch (Exception ex) {
+                    Log.d(TAG, "getFiles: " + ex.getMessage());
+                }
+
             }
         }
         return sfiles.toString();
     }
 
+    boolean copyFile(DocumentFile documentFile, DocumentFile parentFolder) throws IOException {
+        boolean ret = false;
+        if (documentFile != null && documentFile.exists() && documentFile.isFile()) {
+            String name = documentFile.getName();
+            String mimeType = documentFile.getType();
+            long length = documentFile.length();
+            DocumentFile destinationFile = parentFolder.createFile(mimeType, name + "_copy");
+            if (destinationFile != null) {
+                ContentResolver resolver = getContentResolver();
+                OutputStream outputStream = resolver.openOutputStream(destinationFile.getUri());
+                InputStream inputStream = resolver.openInputStream(documentFile.getUri());
+                int len;
+                final byte[] b = new byte[1024];
+                while ((len = inputStream.read(b)) > 0) {
+                    outputStream.write(b, 0, len);
+                }
+                outputStream.flush();
+                outputStream.close();
+                ret = true; //writeStream(inputStream, outputStream);
+            }
+        }
+        return ret;
+    }
 }

@@ -4,6 +4,11 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
 
+import androidx.documentfile.provider.DocumentFile;
+
+import java.io.IOException;
+import java.io.InputStream;
+
 public class MFiles {
     private static Uri mFolderUri;
     private static final String prefKey = "savePathUri";
@@ -46,4 +51,5 @@ public class MFiles {
         String packagePrefs = context.getPackageName() + "_preferences";
         return context.getSharedPreferences(packagePrefs, Context.MODE_PRIVATE);
     }
+
 }

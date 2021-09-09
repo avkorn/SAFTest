@@ -9,6 +9,18 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class SafActivityResult <Input, Result> {
+
+    private final ActivityResultLauncher<Input> launcher;
+    @Nullable
+    private OnActivityResult<Result> onActivityResult;
+
+    private SafActivityResult(@NonNull ActivityResultCaller caller,
+                              @NonNull ActivityResultContract<Input, Result> contract,
+                              @Nullable OnActivityResult<Result> onActivityResult) {
+        this.onActivityResult = onActivityResult;
+        this.launcher = caller.registerForActivityResult(contract, this::callOnActivityResult);
+    }
+
     /**
      * Register activity result using a {@link ActivityResultContract} and an in-place activity result callback like
      * the default approach. You can still customise callback using {@link #launch(Object, OnActivityResult)}.
@@ -51,21 +63,6 @@ public class SafActivityResult <Input, Result> {
         void onActivityResult(O result);
     }
 
-    private final ActivityResultLauncher<Input> launcher;
-    @Nullable
-    private OnActivityResult<Result> onActivityResult;
-
-    private SafActivityResult(@NonNull ActivityResultCaller caller,
-                                 @NonNull ActivityResultContract<Input, Result> contract,
-                                 @Nullable OnActivityResult<Result> onActivityResult) {
-        this.onActivityResult = onActivityResult;
-        this.launcher = caller.registerForActivityResult(contract, this::callOnActivityResult);
-    }
-
-    public void setOnActivityResult(@Nullable OnActivityResult<Result> onActivityResult) {
-        this.onActivityResult = onActivityResult;
-    }
-
     /**
      * Launch activity, same as {@link ActivityResultLauncher#launch(Object)} except that it allows a callback
      * executed after receiving a result from the target activity.
@@ -85,6 +82,8 @@ public class SafActivityResult <Input, Result> {
     }
 
     private void callOnActivityResult(Result result) {
-        if (onActivityResult != null) onActivityResult.onActivityResult(result);
+        if (onActivityResult != null) {
+            onActivityResult.onActivityResult(result);
+        }
     }
 }
